@@ -39,14 +39,7 @@ require __DIR__ . '/../bootstrap/autoload.php';
 |
 */
 
-try {
-    Router::mapApiClasses([
-        '' => Home::class,
-        Explorer::class
-    ]);
-} catch (Throwable $throwable) {
-    echo $throwable->getMessage() . PHP_EOL;
-}
+
 
 /*
 |--------------------------------------------------------------------------
