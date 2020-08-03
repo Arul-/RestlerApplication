@@ -1,0 +1,63 @@
+{
+  "name": "laravel/database",
+  "description": "Get Laravel 7.11.x database for your non laravel projects. Built on top of illuminate/database to provide migration, seeding and artisan support",
+  "keywords": [
+    "laravel",
+    "database",
+    "sql",
+    "orm"
+  ],
+  "license": "MIT",
+  "type": "project",
+  "authors": [
+    {
+      "name": "Arul Kumaran",
+      "email": "arul@luracast.com"
+    }
+  ],
+  "require": {
+    "php": "^7.2.5",
+    "illuminate/cache": "^7.10",
+    "illuminate/database": "^7.10",
+    "illuminate/events": "^7.10",
+    "illuminate/filesystem": "^7.10",
+    "illuminate/pagination": "^7.10",
+    "league/flysystem": "^1.0",
+    "luracast/config": "2.*",
+    "psy/psysh": "^0.10.4",
+    "symfony/process": "^5.0",
+    "vlucas/phpdotenv": "^4.1"
+  },
+  "require-dev": {
+    "doctrine/dbal": "~2.10",
+    "illuminate/console": "^7.10",
+    "illuminate/queue": "^7.10",
+    "illuminate/view": "^7.10",
+    "laravel/helpers": "^1.2"
+  },
+  "suggest": {
+    "doctrine/dbal": "Allow renaming columns and dropping SQLite columns."
+  },
+  "autoload": {
+    "psr-4": {
+      "Bootstrap\\": "bootstrap/",
+      "App\\": "app/"
+    },
+    "classmap": [
+      "database/seeds",
+      "database/factories"
+    ]
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "optimize-autoloader": true
+  },
+  "scripts": {
+    "post-root-package-install": [
+      "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+    ]
+  }
+}
