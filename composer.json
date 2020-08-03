@@ -17,6 +17,7 @@
   ],
   "require": {
     "php": "^7.2.5",
+    "arul/reactphp-restler": "^5.10",
     "illuminate/cache": "^7.10",
     "illuminate/database": "^7.10",
     "illuminate/events": "^7.10",
