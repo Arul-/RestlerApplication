@@ -18,7 +18,12 @@
 |
 */
 
-require __DIR__.'/../bootstrap/autoload.php';
+use Luracast\Restler\OpenApi3\Explorer;
+use App\Http\Controllers\Home;
+use Luracast\Restler\Restler;
+use Luracast\Restler\Router;
+
+require __DIR__ . '/../bootstrap/autoload.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -26,19 +31,22 @@ require __DIR__.'/../bootstrap/autoload.php';
 |--------------------------------------------------------------------------
 |
 | Configure your favourite web app framework to handle web requests and
-| respond back. If you are using Restler framework, you may simply uncomment
+| respond back. If you are using Restler 4 framework, you may simply uncomment
 | the code below and run the following command from the command line on the
 | project root folder
 |
-|    composer require restler/framework
+|    composer require arul/reactphp-restler
 |
 */
 
-/*
-use Luracast\Restler\Restler;
-$r = new Restler();
-$r->addApiClass('Explorer');
-*/
+try {
+    Router::mapApiClasses([
+        '' => Home::class,
+        Explorer::class
+    ]);
+} catch (Throwable $throwable) {
+    echo $throwable->getMessage() . PHP_EOL;
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -50,4 +58,5 @@ $r->addApiClass('Explorer');
 |
 */
 
-// $r->handle();
+$r = new Restler();
+$r->handle();
