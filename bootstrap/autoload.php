@@ -17,14 +17,18 @@ require BASE . '/vendor/autoload.php';
 
 use Bootstrap\Config\Config;
 use Bootstrap\Container\Application;
+use Illuminate\Cache\CacheManager;
+use Illuminate\Database\Capsule\Manager as Database;
+use Illuminate\Events\Dispatcher;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Queue\Capsule\Manager as Queue;
-use Illuminate\Database\Capsule\Manager as Database;
 use Illuminate\Support\Facades\Facade;
-use Illuminate\Events\Dispatcher;
-use Illuminate\Cache\CacheManager;
-use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Str;
+use Luracast\Restler\Defaults;
+use Luracast\Restler\MediaTypes\Html;
+use Luracast\Restler\UI\Forms;
+use Luracast\Restler\UI\FormStyles;
 
 
 /*
@@ -273,3 +277,17 @@ spl_autoload_register(function ($className) use ($app) {
 
     return false;
 }, true, true);
+
+/*
+|--------------------------------------------------------------------------
+| Configure Restler to adapt to Laravel structure
+|--------------------------------------------------------------------------
+*/
+
+Html::$viewPath = $app['path'] . '/views';
+Defaults::$cacheDirectory = $app['config']['cache.path'];
+
+Html::$template = 'blade';
+Forms::$style = FormStyles::$bootstrap3;
+
+include BASE . '/routes/api.php';

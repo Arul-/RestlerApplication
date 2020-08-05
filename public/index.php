@@ -18,10 +18,7 @@
 |
 */
 
-use Luracast\Restler\OpenApi3\Explorer;
-use App\Http\Controllers\Home;
 use Luracast\Restler\Restler;
-use Luracast\Restler\Router;
 
 require __DIR__ . '/../bootstrap/autoload.php';
 

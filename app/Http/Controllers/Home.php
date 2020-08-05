@@ -8,6 +8,6 @@ class Home
 {
     public function index()
     {
-        return ['success' => ['code' => 200, 'message' => 'Restler is ip and running!']];
+        return ['success' => ['code' => 200, 'message' => 'Restler is up and running!']];
     }
 }
