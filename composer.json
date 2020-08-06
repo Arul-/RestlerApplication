@@ -33,6 +33,7 @@
     "doctrine/dbal": "~2.10",
     "illuminate/console": "^7.10",
     "illuminate/queue": "^7.10",
+    "illuminate/routing": "^7.23",
     "illuminate/view": "^7.10",
     "laravel/helpers": "^1.2"
   },
@@ -47,9 +48,6 @@
     "classmap": [
       "database/seeds",
       "database/factories"
-    ],
-    "files": [
-      "routes/api.php"
     ]
   },
   "minimum-stability": "dev",
