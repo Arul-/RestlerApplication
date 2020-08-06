@@ -19,6 +19,7 @@ use Bootstrap\Config\Config;
 use Bootstrap\Container\Application;
 use Illuminate\Cache\CacheManager;
 use Illuminate\Database\Capsule\Manager as Database;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Pagination\Paginator;
@@ -269,15 +270,18 @@ $app->singleton('redis', function () use ($app) {
 */
 
 spl_autoload_register(function ($className) use ($app) {
+    if (Model::class === $className) {
+        include __DIR__ . '/../vendor/illuminate/database/Eloquent/Model.php';
+        $app['db'];
+        return;
+    }
     if (isset($app['config']['app.aliases'][$className])) {
         $app['db']; //lazy initialization of DB
-
         return class_alias($app['config']['app.aliases'][$className], $className);
     }
 
     return false;
 }, true, true);
-
 /*
 |--------------------------------------------------------------------------
 | Configure Restler to adapt to Laravel structure
