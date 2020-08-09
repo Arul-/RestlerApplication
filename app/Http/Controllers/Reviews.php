@@ -1,0 +1,85 @@
+<?php
+
+
+namespace App\Http\Controllers;
+
+
+use App\PaginatedReview;
+use App\Review;
+use Luracast\Restler\Exceptions\HttpException;
+use Psr\Http\Message\ServerRequestInterface;
+
+/**
+ * manage review resources
+ */
+class Reviews
+{
+    /**
+     * @var string
+     */
+    private $path;
+
+    /**
+     * a listing review resources
+     *
+     * @param int $page
+     * @param int $per_page
+     *
+     * @return PaginatedReview
+     */
+    public function index(int $page = 1, int $per_page = 15): PaginatedReview
+    {
+        return new PaginatedReview(Review::paginate($per_page, ['*'], 'page', $page)->setPath($this->path)->jsonSerialize());
+    }
+
+    /**
+     * get a review by id
+     *
+     * @param int $id
+     * @return Review
+     *
+     * @throws HttpException 404 review not found
+     */
+    public function get(int $id): Review
+    {
+        if (!$review = Review::find($id)) {
+            throw new HttpException(404, 'review not found');
+        }
+        return $review;
+    }
+
+    /**
+     * create new review
+     *
+     * @param Review $review
+     * @return Review
+     *
+     * @status 201
+     */
+    public function post(Review $review): Review
+    {
+        $review->save();
+        return $review;
+    }
+
+    /**
+     * delete a review by id
+     *
+     * @param int $id
+     * @return Review
+     * @throws HttpException 404 review not found
+     */
+    public function delete(int $id): Review
+    {
+        if (!$review = Review::find($id)) {
+            throw new HttpException(404, 'review not found');
+        }
+        $review->delete();
+        return $review;
+    }
+
+    public function __construct(ServerRequestInterface $request)
+    {
+        $this->path = $request->getUri()->getPath();
+    }
+}
