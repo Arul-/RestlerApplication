@@ -4,7 +4,7 @@
 namespace App\Http\Controllers;
 
 
-use App\PaginatedReview;
+use App\PaginatedResponse;
 use App\Review;
 use Luracast\Restler\Exceptions\HttpException;
 use Psr\Http\Message\ServerRequestInterface;
@@ -22,14 +22,14 @@ class Reviews
     /**
      * a listing review resources
      *
-     * @param int $page
-     * @param int $per_page
+     * @param int $page {@min 1} page number
+     * @param int $per_page {@min 1} number of items per page
      *
-     * @return PaginatedReview
+     * @return PaginatedResponse {@type Review}
      */
-    public function index(int $page = 1, int $per_page = 15): PaginatedReview
+    public function index(int $page = 1, int $per_page = 15): PaginatedResponse
     {
-        return new PaginatedReview(Review::paginate($per_page, ['*'], 'page', $page)->setPath($this->path)->jsonSerialize());
+        return new PaginatedResponse(Review::paginate($per_page, ['*'], 'page', $page)->setPath($this->path)->jsonSerialize());
     }
 
     /**

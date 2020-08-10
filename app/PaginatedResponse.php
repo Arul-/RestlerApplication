@@ -8,7 +8,7 @@ use Luracast\Restler\Contracts\TypedResponseInterface;
 use Luracast\Restler\Data\Returns;
 use ReflectionClass;
 
-class PaginatedReview implements TypedResponseInterface
+class PaginatedResponse implements TypedResponseInterface
 {
     /**
      * @var array
@@ -26,7 +26,9 @@ class PaginatedReview implements TypedResponseInterface
             'type' => 'object',
             'properties' => [
                 'current_page' => Returns::__set_state(['type' => 'int']),
-                'data' => Returns::fromClass(new ReflectionClass(Review::class)),
+                'data' => empty($types)
+                    ? Returns::__set_state(['type' => 'object', 'scalar' => false])
+                    : Returns::fromClass(new ReflectionClass($types[0])),
                 'first_page_url' => Returns::__set_state(['type' => 'string']),
                 'from' => Returns::__set_state(['type' => 'int']),
                 'last_page' => Returns::__set_state(['type' => 'int']),
