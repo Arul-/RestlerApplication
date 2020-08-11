@@ -1,0 +1,43 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ namespacedModel }};
+use Luracast\Restler\Exceptions\HttpException;
+
+class {{ class }}
+{
+    /**
+     *  a listing of the resource.
+     *
+     * @return {{ model }}[]
+     */
+    public function index()
+    {
+        return {{ model }}::all();
+    }
+
+    public function get($id)
+    {
+        if (!${{ modelVariable }} = {{ model }}::find($id)) {
+            throw new HttpException(404, '{{ modelVariable }} not found');
+        }
+        return ${{ modelVariable }};
+    }
+
+    public function post({{ model }} ${{ modelVariable }})
+    {
+        ${{ modelVariable }}->save();
+        return ${{ modelVariable }};
+    }
+
+    public function delete($id)
+    {
+        if (!${{ modelVariable }} = {{ model }}::find($id)) {
+            throw new HttpException(404, '{{ modelVariable }} not found');
+        }
+        ${{ modelVariable }}->delete();
+        return ['success' => true];
+    }
+
+}

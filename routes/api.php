@@ -12,6 +12,7 @@
 */
 
 use App\Http\Controllers\Home;
+use App\Http\Controllers\Reviews;
 use Luracast\Restler\Defaults;
 use Luracast\Restler\OpenApi3\Explorer;
 use Luracast\Restler\Router;
@@ -20,6 +21,7 @@ try {
     Defaults::$productionMode = getenv('APP_ENV') == 'production';
     Router::mapApiClasses([
         '' => Home::class,
+        Reviews::class,
         Explorer::class
     ]);
     $routes = Router::toArray();

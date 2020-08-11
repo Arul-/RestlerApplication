@@ -17,7 +17,7 @@
   ],
   "require": {
     "php": "^7.2.5",
-    "arul/reactphp-restler": "^5.10",
+    "arul/reactphp-restler": "^6.0",
     "illuminate/cache": "^7.10",
     "illuminate/database": "^7.10",
     "illuminate/events": "^7.10",
@@ -33,7 +33,6 @@
     "doctrine/dbal": "~2.10",
     "illuminate/console": "^7.10",
     "illuminate/queue": "^7.10",
-    "illuminate/routing": "^7.23",
     "illuminate/view": "^7.10",
     "laravel/helpers": "^1.2"
   },

@@ -4,10 +4,10 @@
 namespace App\Http\Controllers;
 
 
-use App\PaginatedResponse;
 use App\Review;
-use Luracast\Restler\Exceptions\HttpException;
 use Psr\Http\Message\ServerRequestInterface;
+use Luracast\Restler\Data\PaginatedResponse;
+use Luracast\Restler\Exceptions\HttpException;
 
 /**
  * manage review resources
