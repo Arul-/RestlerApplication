@@ -81,7 +81,7 @@ class Artisan extends \Illuminate\Console\Application
             $console->add(new AutoloadCommand($app['composer']));
             $console->add(new ServeCommand());
             $console->add(new ModelMakeCommand($app['files']));
-            $console->add(new CommandMakeCommand($app['files']));
+            $console->add(new ConsoleMakeCommand($app['files']));
             $console->add(new EnvironmentCommand());
             $console->add(new VendorPublishCommand($app['files']));
             $console->add(new FactoryMakeCommand($app['files']));
