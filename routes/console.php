@@ -13,7 +13,7 @@
 */
 
 
-use Bootstrap\Console\ControllerMakeCommand;
+use App\Console\Commands\ControllerMakeCommand;
 
 Artisan::command('inspire', function () {
     $this->comment("All is well");

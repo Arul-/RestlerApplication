@@ -13,11 +13,11 @@ use Illuminate\Database\Eloquent\Model;
  * @property       string $message
  * @property-read  string $created_at {@type date}
  * @property-read  string $updated_at {@type date}
- *
+ * 
  */
  class Review extends Model
 {
-
+    
     /**
      * Indicates if the model should be timestamped.
      *
@@ -38,9 +38,9 @@ use Illuminate\Database\Eloquent\Model;
      * @var array
      */
     protected $fillable = [ //TODO: edit fillable
+        'name',
         'email',
-        'message',
-        'name'
+        'message'
     ];
 
     /**
@@ -49,6 +49,6 @@ use Illuminate\Database\Eloquent\Model;
      * @var array
      */
     protected $hidden = [
-
+        
     ];
 }

@@ -1,9 +1,9 @@
 <?php
 
 
-namespace Bootstrap\Console;
+namespace App\Console\Commands;
 
-use Illuminate\Console\GeneratorCommand;
+use Bootstrap\Console\GeneratorCommand;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
