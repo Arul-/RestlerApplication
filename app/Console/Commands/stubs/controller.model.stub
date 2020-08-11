@@ -15,7 +15,7 @@ class {{ class }}
      *
      * @return {{ model }}[]
      */
-    public function index(): array
+    public function index()
     {
         return {{ model }}::all();
     }
