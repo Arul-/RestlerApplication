@@ -290,6 +290,7 @@ spl_autoload_register(function ($className) use ($app) {
 
 Html::$viewPath = $app['path'] . '/views';
 Defaults::$cacheDirectory = $app['config']['cache.path'];
+Defaults::$productionMode = 'production' == getenv('APP_ENV') ?: 'development';
 
 Html::$template = 'blade';
 Forms::$style = FormStyles::$bootstrap3;
