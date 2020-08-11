@@ -84,6 +84,7 @@ class Artisan extends \Illuminate\Console\Application
             $console->add(new CommandMakeCommand($app['files']));
             $console->add(new EnvironmentCommand());
             $console->add(new VendorPublishCommand($app['files']));
+            $console->add(new FactoryMakeCommand($app['files']));
 
             // DB Migration Commands
             $console->add(new InstallCommand(new DatabaseMigrationRepository($app['db'], "migrations")));
