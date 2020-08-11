@@ -4,6 +4,7 @@
 namespace Bootstrap\Console;
 
 use Illuminate\Console\GeneratorCommand;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Symfony\Component\Console\Input\InputOption;
@@ -40,23 +41,13 @@ class ControllerMakeCommand extends GeneratorCommand
     {
         $stub = null;
 
-        if ($this->option('parent')) {
-            $stub = '/stubs/controller.nested.stub';
-        } elseif ($this->option('model')) {
-            $stub = '/stubs/controller.model.stub';
-        } elseif ($this->option('invokable')) {
-            $stub = '/stubs/controller.invokable.stub';
-        } elseif ($this->option('resource')) {
-            $stub = '/stubs/controller.stub';
+        if ($this->option('model')) {
+            $stub = $this->option('paginate')
+                ? '/stubs/controller.model.paginate.stub'
+                : '/stubs/controller.model.stub';
         }
 
-        if ($this->option('api') && is_null($stub)) {
-            $stub = '/stubs/controller.api.stub';
-        } elseif ($this->option('api') && !is_null($stub) && !$this->option('invokable')) {
-            $stub = str_replace('.stub', '.api.stub', $stub);
-        }
-
-        $stub = $stub ?? '/stubs/controller.plain.stub';
+        $stub = $stub ?? '/stubs/controller.stub';
 
         return $this->resolveStubPath($stub);
     }
@@ -92,17 +83,13 @@ class ControllerMakeCommand extends GeneratorCommand
      *
      * @param string $name
      * @return string
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     * @throws FileNotFoundException
      */
     protected function buildClass($name)
     {
         $controllerNamespace = $this->getNamespace($name);
 
         $replace = [];
-
-        if ($this->option('parent')) {
-            $replace = $this->buildParentReplacements();
-        }
 
         if ($this->option('model')) {
             $replace = $this->buildModelReplacements($replace);
@@ -115,33 +102,6 @@ class ControllerMakeCommand extends GeneratorCommand
         );
     }
 
-    /**
-     * Build the replacements for a parent controller.
-     *
-     * @return array
-     */
-    protected function buildParentReplacements()
-    {
-        $parentModelClass = $this->parseModel($this->option('parent'));
-
-        if (!class_exists($parentModelClass)) {
-            if ($this->confirm("A {$parentModelClass} model does not exist. Do you want to generate it?", true)) {
-                $this->call('make:model', ['name' => $parentModelClass]);
-            }
-        }
-
-        return [
-            'ParentDummyFullModelClass' => $parentModelClass,
-            '{{ namespacedParentModel }}' => $parentModelClass,
-            '{{namespacedParentModel}}' => $parentModelClass,
-            'ParentDummyModelClass' => class_basename($parentModelClass),
-            '{{ parentModel }}' => class_basename($parentModelClass),
-            '{{parentModel}}' => class_basename($parentModelClass),
-            'ParentDummyModelVariable' => lcfirst(class_basename($parentModelClass)),
-            '{{ parentModelVariable }}' => lcfirst(class_basename($parentModelClass)),
-            '{{parentModelVariable}}' => lcfirst(class_basename($parentModelClass)),
-        ];
-    }
 
     /**
      * Build the model replacement values.
@@ -178,7 +138,7 @@ class ControllerMakeCommand extends GeneratorCommand
      * @param string $model
      * @return string
      *
-     * @throws \InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     protected function parseModel($model)
     {
@@ -203,12 +163,9 @@ class ControllerMakeCommand extends GeneratorCommand
     protected function getOptions()
     {
         return [
-            ['api', null, InputOption::VALUE_NONE, 'Exclude the create and edit methods from the controller.'],
             ['force', null, InputOption::VALUE_NONE, 'Create the class even if the controller already exists'],
-            ['invokable', 'i', InputOption::VALUE_NONE, 'Generate a single method, invokable controller class.'],
+            ['paginate', 'p', InputOption::VALUE_NONE, 'Paginate the listing response when a model is used.'],
             ['model', 'm', InputOption::VALUE_OPTIONAL, 'Generate a resource controller for the given model.'],
-            ['parent', 'p', InputOption::VALUE_OPTIONAL, 'Generate a nested resource controller class.'],
-            ['resource', 'r', InputOption::VALUE_NONE, 'Generate a resource controller class.'],
         ];
     }
 }
