@@ -20,9 +20,8 @@ use Luracast\Restler\Router;
 try {
     Defaults::$productionMode = getenv('APP_ENV') == 'production';
     Router::mapApiClasses([
-        '' => Home::class,
-        Reviews::class,
-        Explorer::class
+        '' => Explorer::class,
+        Home::class,
     ]);
     $routes = Router::toArray();
 } catch (Throwable $throwable) {
