@@ -63,6 +63,54 @@ class ModelMakeCommand extends GeneratorCommand
         }
     }
 
+    /**
+     * Create a model factory for the model.
+     *
+     * @return void
+     */
+    protected function createFactory()
+    {
+        $factory = Str::studly(class_basename($this->argument('name')));
+
+        $this->call('make:factory', [
+            'name' => "{$factory}Factory",
+            '--model' => $this->qualifyClass($this->getNameInput()),
+        ]);
+    }
+
+    /**
+     * Create a migration file for the model.
+     *
+     * @return void
+     */
+    protected function createMigration()
+    {
+        $table = Str::snake(Str::pluralStudly(class_basename($this->argument('name'))));
+
+        if ($this->option('pivot')) {
+            $table = Str::singular($table);
+        }
+
+        $this->call('make:migration', [
+            'name' => "create_{$table}_table",
+            '--create' => $table,
+        ]);
+    }
+
+    /**
+     * Create a seeder file for the model.
+     *
+     * @return void
+     */
+    protected function createSeeder()
+    {
+        $seeder = Str::studly(class_basename($this->argument('name')));
+
+        $this->call('make:seed', [
+            'name' => "{$seeder}Seeder",
+        ]);
+    }
+
     protected function buildClass($name)
     {
         $replace = [];
