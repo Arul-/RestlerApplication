@@ -1,0 +1,58 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ namespacedModel }};
+use Psr\Http\Message\ServerRequestInterface;
+use Luracast\Restler\Data\PaginatedResponse;
+use Luracast\Restler\Exceptions\HttpException;
+
+class {{ class }}
+{
+    /**
+     * @var string
+     */
+    private $path;
+
+    /**
+     *  a listing of {{ modelVariable }} resources.
+     *
+     * @param int $page {@min 1} page number
+     * @param int $per_page {@min 1} number of items per page
+     *
+     *
+     * @return PaginatedResponse {@type {{ model }}}
+     */
+    public function index()
+    {
+        return new PaginatedResponse({{ model }}::paginate($per_page, ['*'], 'page', $page)->setPath($this->path));
+    }
+
+    public function get($id)
+    {
+        if (!${{ modelVariable }} = {{ model }}::find($id)) {
+            throw new HttpException(404, '{{ modelVariable }} not found');
+        }
+        return ${{ modelVariable }};
+    }
+
+    public function post({{ model }} ${{ modelVariable }})
+    {
+        ${{ modelVariable }}->save();
+        return ${{ modelVariable }};
+    }
+
+    public function delete($id)
+    {
+        if (!${{ modelVariable }} = {{ model }}::find($id)) {
+            throw new HttpException(404, '{{ modelVariable }} not found');
+        }
+        ${{ modelVariable }}->delete();
+        return ['success' => true];
+    }
+
+    public function __construct(ServerRequestInterface $request)
+    {
+        $this->path = $request->getUri()->getPath();
+    }
+}
