@@ -275,6 +275,14 @@ spl_autoload_register(function ($className) use ($app) {
         $app['db'];
         return;
     }
+    if (Jenssegers\Mongodb\Eloquent\Model::class === $className) {
+        include __DIR__ . '/../vendor/jenssegers/mongodb/src/Jenssegers/Mongodb/Eloquent/Model.php';
+        $app['db']->extend('mongodb', function ($config, $name) {
+            $config['name'] = $name;
+            return new Jenssegers\Mongodb\Connection($config);
+        });
+        return;
+    }
     if (isset($app['config']['app.aliases'][$className])) {
         $app['db']; //lazy initialization of DB
         return class_alias($app['config']['app.aliases'][$className], $className);
