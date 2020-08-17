@@ -23,6 +23,7 @@
     "illuminate/events": "^7.10",
     "illuminate/filesystem": "^7.10",
     "illuminate/pagination": "^7.10",
+    "jenssegers/mongodb": "^4",
     "league/flysystem": "^1.0",
     "luracast/config": "2.*",
     "psy/psysh": "^0.10.4",
