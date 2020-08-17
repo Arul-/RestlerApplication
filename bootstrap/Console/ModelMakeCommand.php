@@ -8,6 +8,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Schema;
 use DB;
+use Throwable;
 
 class ModelMakeCommand extends GeneratorCommand
 {
@@ -135,7 +136,12 @@ class ModelMakeCommand extends GeneratorCommand
                     '$1_$2',
                     class_basename($this->argument('name')
                     ))));
-        $fields = Schema::getColumnListing($table);
+        try {
+            $fields = Schema::getColumnListing($table);
+        }catch (Throwable $t){
+            //ignore
+            $fields = [];
+        }
 
         $hide = ['password', 'secret'];
         $avoid = ['id', 'ID', 'verified', 'active'];
