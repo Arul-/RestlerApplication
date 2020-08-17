@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Review;
+use Luracast\Restler\Data\PaginatedResponse;
 use Luracast\Restler\Exceptions\HttpException;
+use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * manage review resources
@@ -11,13 +13,21 @@ use Luracast\Restler\Exceptions\HttpException;
 class Reviews
 {
     /**
+     * @var string
+     */
+    private $path;
+
+    /**
      *  a listing of review resource.
      *
-     * @return Review[]
+     * @param int $page {@min 1} page number
+     * @param int $per_page {@min 1} number of items per page
+     *
+     * @return PaginatedResponse {@type Review}
      */
-    public function index()
+    public function index(int $page = 1, int $per_page = 15): PaginatedResponse
     {
-        return Review::all();
+        return new PaginatedResponse(Review::paginate($per_page, ['*'], 'page', $page)->setPath($this->path));
     }
 
     /**
@@ -64,5 +74,10 @@ class Reviews
         }
         $review->delete();
         return $review;
+    }
+
+    public function __construct(ServerRequestInterface $request)
+    {
+        $this->path = $request->getUri()->getPath();
     }
 }
