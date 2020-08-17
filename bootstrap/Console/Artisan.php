@@ -39,7 +39,7 @@ class Artisan extends \Illuminate\Console\Application
     public function __construct(Container $laravel, Dispatcher $events, $version)
     {
         parent::__construct($laravel, $events, $version);
-        $this->setName('Laravel Database');
+        $this->setName('Artisan');
         $this->setCatchExceptions(true);
     }
 
