@@ -201,6 +201,10 @@ $app->singleton('db', function () use ($app) {
     $db->setAsGlobal();
     $db->bootEloquent();
 
+    $db->getDatabaseManager()->extend('mongodb', function ($config, $name) {
+        $config['name'] = $name;
+        return new Jenssegers\Mongodb\Connection($config);
+    });
     return $db->getDatabaseManager();
 });
 
@@ -273,15 +277,12 @@ spl_autoload_register(function ($className) use ($app) {
     if (Model::class === $className) {
         include __DIR__ . '/../vendor/illuminate/database/Eloquent/Model.php';
         $app['db'];
-        return;
+        return true;
     }
     if (Jenssegers\Mongodb\Eloquent\Model::class === $className) {
         include __DIR__ . '/../vendor/jenssegers/mongodb/src/Jenssegers/Mongodb/Eloquent/Model.php';
-        $app['db']->extend('mongodb', function ($config, $name) {
-            $config['name'] = $name;
-            return new Jenssegers\Mongodb\Connection($config);
-        });
-        return;
+        $app['db'];
+        return true;
     }
     if (isset($app['config']['app.aliases'][$className])) {
         $app['db']; //lazy initialization of DB
