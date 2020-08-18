@@ -17,6 +17,7 @@ use Jenssegers\Mongodb\Eloquent\Model;
  */
 class Review extends Model
 {
+    protected $appends = ['id'];
 
     protected $dates = ['created_at', 'updated_at'];
 
@@ -50,6 +51,7 @@ class Review extends Model
      */
     protected $hidden = [
         'password',
-        'secret'
+        'secret',
+        '_id'
     ];
 }
