@@ -7,7 +7,7 @@ use Jenssegers\Mongodb\Eloquent\Model;
 /**
  * Class Review
  *
- * @property-read  int $id
+ * @property-read  string $id
  * @property       string $name
  * @property       string $email
  * @property       string $message
