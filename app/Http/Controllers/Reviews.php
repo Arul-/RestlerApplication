@@ -27,7 +27,8 @@ class Reviews
      */
     public function index(int $page = 1, int $per_page = 15): PaginatedResponse
     {
-        return new PaginatedResponse(Review::paginate($per_page, ['*'], 'page', $page)->setPath($this->path));
+        return PaginatedResponse::fromSerializable(Review::paginate($per_page, ['*'], 'page',
+            $page)->setPath($this->path));
     }
 
     /**
@@ -78,6 +79,6 @@ class Reviews
 
     public function __construct(ServerRequestInterface $request)
     {
-        $this->path = $request->getUri()->getPath();
+        $this->path = $request->getUri()->withQuery('')->getPath();
     }
 }
