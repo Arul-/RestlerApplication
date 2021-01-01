@@ -16,7 +16,7 @@
     }
   ],
   "require": {
-    "php": "^7.2.5",
+    "php": "^7.2.5|^8",
     "arul/reactphp-restler": "^6.0",
     "illuminate/cache": "^7.10",
     "illuminate/database": "^7.10",
@@ -28,7 +28,8 @@
     "luracast/config": "2.*",
     "psy/psysh": "^0.10.4",
     "symfony/process": "^5.0",
-    "vlucas/phpdotenv": "^4.1"
+    "vlucas/phpdotenv": "^4.1",
+    "webonyx/graphql-php": "^14.3"
   },
   "require-dev": {
     "doctrine/dbal": "~2.10",
