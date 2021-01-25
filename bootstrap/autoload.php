@@ -384,7 +384,7 @@ if (!function_exists('view')) {
      */
     function view($view = null, $data = [], $mergeData = [])
     {
-        static $factory, $viewFinder, $engine = null;
+        static $factory = null;
         if (!$factory) {
             $resolver = new EngineResolver();
             $filesystem = new Filesystem();
@@ -421,11 +421,6 @@ if (!function_exists('view')) {
         }
         return $factory->make($view, (array)$data, $mergeData);
         $path = $viewFinder->find($view);
-        /*
-        $viewInstance = new View($factory, $engine, $view, $path, $data);
-        $factory->callCreator($viewInstance);
-        return $viewInstance->render();
-        */
     }
 }
 
@@ -456,6 +451,7 @@ $app->singleton('livewire', function () use ($app) {
             return app(LivewireTagCompiler::class)->compile($string);
         });
     }
+
     LifecycleManager::registerHydrationMiddleware([
 
         /* This is the core middleware stack of Livewire. It's important */
