@@ -288,71 +288,6 @@ if (!function_exists('config')) {
     }
 }
 
-$app->singleton('livewire', function () use ($app) {
-    $livewire = new LivewireManager();
-    // We will generate a manifest file so we don't have to do the lookup every time.
-    $defaultManifestPath = $livewire->isOnVapor()
-        ? '/tmp/storage/bootstrap/cache/livewire-components.php'
-        : $app->bootstrapPath('cache/livewire-components.php');
-    $app->singleton(LivewireComponentsFinder::class, function () use ($defaultManifestPath) {
-        return new LivewireComponentsFinder(
-            new Filesystem,
-            config('livewire.manifest_path') ?: $defaultManifestPath,
-            ComponentParser::generatePathFromNamespace(
-                config('livewire.class_namespace', 'App\\Http\\Livewire')
-            )
-        );
-    });
-    LifecycleManager::registerHydrationMiddleware([
-
-        /* This is the core middleware stack of Livewire. It's important */
-        /* to understand that the request goes through each class by the */
-        /* order it is listed in this array, and is reversed on response */
-        /*                                                               */
-        /* ↓    Incoming Request                  Outgoing Response    ↑ */
-        /* ↓                                                           ↑ */
-        /* ↓    Secure Stuff                                           ↑ */
-        /* ↓ */ SecureHydrationWithChecksum::class, /* --------------- ↑ */
-        /* ↓ */ NormalizeServerMemoSansDataForJavaScript::class, /* -- ↑ */
-        /* ↓ */ HashDataPropertiesForDirtyDetection::class, /* ------- ↑ */
-        /* ↓                                                           ↑ */
-        /* ↓    Hydrate Stuff                                          ↑ */
-        /* ↓ */ HydratePublicProperties::class, /* ------------------- ↑ */
-        /* ↓ */ CallPropertyHydrationHooks::class, /* ---------------- ↑ */
-        /* ↓ */ CallHydrationHooks::class, /* ------------------------ ↑ */
-        /* ↓                                                           ↑ */
-        /* ↓    Update Stuff                                           ↑ */
-        /* ↓ */ PerformDataBindingUpdates::class, /* ----------------- ↑ */
-        /* ↓ */ PerformActionCalls::class, /* ------------------------ ↑ */
-        /* ↓ */ PerformEventEmissions::class, /* --------------------- ↑ */
-        /* ↓                                                           ↑ */
-        /* ↓    Output Stuff                                           ↑ */
-        /* ↓ */ RenderView::class, /* -------------------------------- ↑ */
-        /* ↓ */ NormalizeComponentPropertiesForJavaScript::class, /* - ↑ */
-
-    ]);
-
-    LifecycleManager::registerInitialDehydrationMiddleware([
-
-        /* Initial Response */
-        /* ↑ */ [SecureHydrationWithChecksum::class, 'dehydrate'],
-        /* ↑ */ [NormalizeServerMemoSansDataForJavaScript::class, 'dehydrate'],
-        /* ↑ */ [HydratePublicProperties::class, 'dehydrate'],
-        /* ↑ */ [CallPropertyHydrationHooks::class, 'dehydrate'],
-        /* ↑ */ [CallHydrationHooks::class, 'initialDehydrate'],
-        /* ↑ */ [RenderView::class, 'dehydrate'],
-        /* ↑ */ [NormalizeComponentPropertiesForJavaScript::class, 'dehydrate'],
-
-    ]);
-
-    LifecycleManager::registerInitialHydrationMiddleware([
-
-        [CallHydrationHooks::class, 'initialHydrate'],
-
-    ]);
-    return $livewire;
-});
-
 /*
 |--------------------------------------------------------------------------
 | Pagination Support
@@ -475,16 +410,6 @@ if (!function_exists('view')) {
             $app = app();
             $app->instance('blade.compiler', $compiler);
             $app->instance('view.engine.resolver', $resolver);
-            $compiler->directive('this', [LivewireBladeDirectives::class, 'this']);
-            $compiler->directive('entangle', [LivewireBladeDirectives::class, 'entangle']);
-            $compiler->directive('livewire', [LivewireBladeDirectives::class, 'livewire']);
-            $compiler->directive('livewireStyles', [LivewireBladeDirectives::class, 'livewireStyles']);
-            $compiler->directive('livewireScripts', [LivewireBladeDirectives::class, 'livewireScripts']);
-            if (method_exists($compiler, 'precompiler')) {
-                $compiler->precompiler(function ($string) {
-                    return app(LivewireTagCompiler::class)->compile($string);
-                });
-            }
             $viewFinder = new FileViewFinder($filesystem, [Html::$viewPath]);
             $factory = new Factory($resolver, $viewFinder, new Dispatcher());
             $factory->setContainer($app);
@@ -503,3 +428,80 @@ if (!function_exists('view')) {
         */
     }
 }
+
+$app->singleton('livewire', function () use ($app) {
+    $livewire = new LivewireManager();
+    // We will generate a manifest file so we don't have to do the lookup every time.
+    $defaultManifestPath = $livewire->isOnVapor()
+        ? '/tmp/storage/bootstrap/cache/livewire-components.php'
+        : $app->bootstrapPath('cache/livewire-components.php');
+    $app->singleton(LivewireComponentsFinder::class, function () use ($defaultManifestPath) {
+        return new LivewireComponentsFinder(
+            new Filesystem,
+            config('livewire.manifest_path') ?: $defaultManifestPath,
+            ComponentParser::generatePathFromNamespace(
+                config('livewire.class_namespace', 'App\\Http\\Livewire')
+            )
+        );
+    });
+    view(); //initialize view
+    $compiler = app('blade.compiler');
+    $compiler->directive('this', [LivewireBladeDirectives::class, 'this']);
+    $compiler->directive('entangle', [LivewireBladeDirectives::class, 'entangle']);
+    $compiler->directive('livewire', [LivewireBladeDirectives::class, 'livewire']);
+    $compiler->directive('livewireStyles', [LivewireBladeDirectives::class, 'livewireStyles']);
+    $compiler->directive('livewireScripts', [LivewireBladeDirectives::class, 'livewireScripts']);
+    if (method_exists($compiler, 'precompiler')) {
+        $compiler->precompiler(function ($string) {
+            return app(LivewireTagCompiler::class)->compile($string);
+        });
+    }
+    LifecycleManager::registerHydrationMiddleware([
+
+        /* This is the core middleware stack of Livewire. It's important */
+        /* to understand that the request goes through each class by the */
+        /* order it is listed in this array, and is reversed on response */
+        /*                                                               */
+        /* ↓    Incoming Request                  Outgoing Response    ↑ */
+        /* ↓                                                           ↑ */
+        /* ↓    Secure Stuff                                           ↑ */
+        /* ↓ */ SecureHydrationWithChecksum::class, /* --------------- ↑ */
+        /* ↓ */ NormalizeServerMemoSansDataForJavaScript::class, /* -- ↑ */
+        /* ↓ */ HashDataPropertiesForDirtyDetection::class, /* ------- ↑ */
+        /* ↓                                                           ↑ */
+        /* ↓    Hydrate Stuff                                          ↑ */
+        /* ↓ */ HydratePublicProperties::class, /* ------------------- ↑ */
+        /* ↓ */ CallPropertyHydrationHooks::class, /* ---------------- ↑ */
+        /* ↓ */ CallHydrationHooks::class, /* ------------------------ ↑ */
+        /* ↓                                                           ↑ */
+        /* ↓    Update Stuff                                           ↑ */
+        /* ↓ */ PerformDataBindingUpdates::class, /* ----------------- ↑ */
+        /* ↓ */ PerformActionCalls::class, /* ------------------------ ↑ */
+        /* ↓ */ PerformEventEmissions::class, /* --------------------- ↑ */
+        /* ↓                                                           ↑ */
+        /* ↓    Output Stuff                                           ↑ */
+        /* ↓ */ RenderView::class, /* -------------------------------- ↑ */
+        /* ↓ */ NormalizeComponentPropertiesForJavaScript::class, /* - ↑ */
+
+    ]);
+
+    LifecycleManager::registerInitialDehydrationMiddleware([
+
+        /* Initial Response */
+        /* ↑ */ [SecureHydrationWithChecksum::class, 'dehydrate'],
+        /* ↑ */ [NormalizeServerMemoSansDataForJavaScript::class, 'dehydrate'],
+        /* ↑ */ [HydratePublicProperties::class, 'dehydrate'],
+        /* ↑ */ [CallPropertyHydrationHooks::class, 'dehydrate'],
+        /* ↑ */ [CallHydrationHooks::class, 'initialDehydrate'],
+        /* ↑ */ [RenderView::class, 'dehydrate'],
+        /* ↑ */ [NormalizeComponentPropertiesForJavaScript::class, 'dehydrate'],
+
+    ]);
+
+    LifecycleManager::registerInitialHydrationMiddleware([
+
+        [CallHydrationHooks::class, 'initialHydrate'],
+
+    ]);
+    return $livewire;
+});
