@@ -30,11 +30,11 @@ use Illuminate\Support\Str;
 use Illuminate\View\Compilers\BladeCompiler;
 use Illuminate\View\Engines\CompilerEngine;
 use Illuminate\View\Engines\EngineResolver;
+use Illuminate\View\Engines\FileEngine;
 use Illuminate\View\Engines\PhpEngine;
 use Illuminate\View\Factory;
 use Illuminate\View\FileViewFinder;
 use Livewire\Commands\ComponentParser;
-use Livewire\CompilerEngineForIgnition;
 use Livewire\HydrationMiddleware\CallHydrationHooks;
 use Livewire\HydrationMiddleware\CallPropertyHydrationHooks;
 use Livewire\HydrationMiddleware\HashDataPropertiesForDirtyDetection;
@@ -386,32 +386,28 @@ if (!function_exists('view')) {
     {
         static $factory = null;
         if (!$factory) {
-            $resolver = new EngineResolver();
+            $app = app();
             $filesystem = new Filesystem();
             $compiler = new BladeCompiler($filesystem, Html::$cacheDirectory ?? Defaults::$cacheDirectory);
-            $engine = new CompilerEngine($compiler);
-            $resolver->register(
-                'blade',
-                function () use ($engine, $compiler) {
-                    if (class_exists(\Facade\Ignition\IgnitionServiceProvider::class)) {
-                        return new CompilerEngineForIgnition($compiler);
-                    }
-                    return new LivewireViewCompilerEngine($compiler);
-                    //return $engine;
-                }
-            );
-            $phpEngine = new PhpEngine($filesystem);
-            $resolver->register(
-                'php',
-                function () use ($phpEngine) {
-                    return $phpEngine;
-                }
-            );
-            $app = app();
+            $engine = new CompilerEngine($compiler, $filesystem);
+
+            $app->instance('files', $filesystem);
+            $app->instance('blade', $engine);
             $app->instance('blade.compiler', $compiler);
-            $app->instance('view.engine.resolver', $resolver);
-            $viewFinder = new FileViewFinder($filesystem, [Html::$viewPath]);
-            $factory = new Factory($resolver, $viewFinder, new Dispatcher());
+            $app->instance('view.engine.resolver', $resolver = new EngineResolver());
+
+            $resolver->register('file', function () use($app) {
+                return new FileEngine($app['files']);
+            });
+            $resolver->register('php', function () use($app) {
+                return new PhpEngine($app['files']);
+            });
+            $resolver->register('blade', function () use($app) {
+                return new CompilerEngine($app['blade.compiler'], $app['files']);
+            });
+
+            $app->instance('view.finder', $finder = new FileViewFinder($filesystem, [Html::$viewPath]));
+            $factory = new Factory($resolver, $finder, $app['events']);
             $factory->setContainer($app);
             $factory->share('app', $app);
             $app->instance('view', $factory);
@@ -420,7 +416,7 @@ if (!function_exists('view')) {
             return $factory;
         }
         return $factory->make($view, (array)$data, $mergeData);
-        $path = $viewFinder->find($view);
+        $path = $finder->find($view);
     }
 }
 
@@ -441,6 +437,16 @@ $app->singleton('livewire', function () use ($app) {
     });
     view(); //initialize view
     $compiler = app('blade.compiler');
+    $resolver = app('view.engine.resolver');
+    $resolver->register(
+        'blade',
+        function () use ($compiler) {
+            if (class_exists(\Facade\Ignition\IgnitionServiceProvider::class)) {
+                return new CompilerEngineForIgnition($compiler);
+            }
+            return new LivewireViewCompilerEngine($compiler);
+        }
+    );
     $compiler->directive('this', [LivewireBladeDirectives::class, 'this']);
     $compiler->directive('entangle', [LivewireBladeDirectives::class, 'entangle']);
     $compiler->directive('livewire', [LivewireBladeDirectives::class, 'livewire']);
