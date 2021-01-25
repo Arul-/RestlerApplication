@@ -89,7 +89,7 @@ class Artisan extends \Illuminate\Console\Application
             // DB Migration Commands
             $console->add(new InstallCommand(new DatabaseMigrationRepository($app['db'], "migrations")));
             $console->add(new WipeCommand());
-            $console->add(new MigrateCommand($app['migrator']));
+            $console->add(new MigrateCommand($app['migrator'], $app['dispatcher']));
             $console->add(new MigrateMakeCommand($app['migration.creator'], $app['composer']));
             $console->add(new StatusCommand($app['migrator']));
             $console->add(new RefreshCommand());
@@ -118,10 +118,10 @@ class Artisan extends \Illuminate\Console\Application
         foreach ($providers as $class) {
             /** @var ServiceProvider $instance */
             $instance = new $class($app);
+            $instance->register();
             if (method_exists($instance, 'boot')) {
                 $instance->boot();
             }
-            $instance->register();
         }
     }
 

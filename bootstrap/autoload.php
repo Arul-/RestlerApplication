@@ -17,6 +17,7 @@ require BASE . '/vendor/autoload.php';
 
 use Bootstrap\Config\Config;
 use Bootstrap\Container\Application;
+use GuzzleHttp\Psr7\ServerRequest;
 use Illuminate\Cache\CacheManager;
 use Illuminate\Database\Capsule\Manager as Database;
 use Illuminate\Database\Eloquent\Model;
@@ -26,6 +27,31 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Queue\Capsule\Manager as Queue;
 use Illuminate\Support\Facades\Facade;
 use Illuminate\Support\Str;
+use Illuminate\View\Compilers\BladeCompiler;
+use Illuminate\View\Engines\CompilerEngine;
+use Illuminate\View\Engines\EngineResolver;
+use Illuminate\View\Engines\PhpEngine;
+use Illuminate\View\Factory;
+use Illuminate\View\FileViewFinder;
+use Livewire\Commands\ComponentParser;
+use Livewire\CompilerEngineForIgnition;
+use Livewire\HydrationMiddleware\CallHydrationHooks;
+use Livewire\HydrationMiddleware\CallPropertyHydrationHooks;
+use Livewire\HydrationMiddleware\HashDataPropertiesForDirtyDetection;
+use Livewire\HydrationMiddleware\HydratePublicProperties;
+use Livewire\HydrationMiddleware\NormalizeComponentPropertiesForJavaScript;
+use Livewire\HydrationMiddleware\NormalizeServerMemoSansDataForJavaScript;
+use Livewire\HydrationMiddleware\PerformActionCalls;
+use Livewire\HydrationMiddleware\PerformDataBindingUpdates;
+use Livewire\HydrationMiddleware\PerformEventEmissions;
+use Livewire\HydrationMiddleware\RenderView;
+use Livewire\HydrationMiddleware\SecureHydrationWithChecksum;
+use Livewire\LifecycleManager;
+use Livewire\LivewireBladeDirectives;
+use Livewire\LivewireComponentsFinder;
+use Livewire\LivewireManager;
+use Livewire\LivewireTagCompiler;
+use Livewire\LivewireViewCompilerEngine;
 use Luracast\Restler\Defaults;
 use Luracast\Restler\MediaTypes\Html;
 use Luracast\Restler\UI\Forms;
@@ -153,6 +179,18 @@ if (!function_exists('base_path')) {
         return app('path.base') . ($path ? DIRECTORY_SEPARATOR . $path : $path);
     }
 }
+if (!function_exists('app_path')) {
+    function app_path($path = '')
+    {
+        return base_path('app' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
+    }
+}
+if (!function_exists('resource_path')) {
+    function resource_path($path = '')
+    {
+        return base_path('resources' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
+    }
+}
 
 if (!function_exists('storage_path')) {
     function storage_path($path = '')
@@ -175,11 +213,27 @@ if (!function_exists('database_path')) {
     }
 }
 
+if (!function_exists('public_path')) {
+    function public_path($path = '')
+    {
+        return app('path.public') . ($path ? DIRECTORY_SEPARATOR . $path : $path);
+    }
+}
+
 $app->instance('config', new Config(app('path.config'), $env));
 
 $app->singleton('events', function () use ($app) {
     return new Dispatcher($app);
 });
+
+$app->singleton('dispatcher', function () use ($app) {
+    return $app['events'];
+});
+
+$app->singleton('Illuminate\Contracts\Events\Dispatcher', function () use ($app) {
+    return $app['events'];
+});
+
 
 $app->singleton('files', function () use ($app) {
     return new Filesystem();
@@ -233,6 +287,71 @@ if (!function_exists('config')) {
         }
     }
 }
+
+$app->singleton('livewire', function () use ($app) {
+    $livewire = new LivewireManager();
+    // We will generate a manifest file so we don't have to do the lookup every time.
+    $defaultManifestPath = $livewire->isOnVapor()
+        ? '/tmp/storage/bootstrap/cache/livewire-components.php'
+        : $app->bootstrapPath('cache/livewire-components.php');
+    $app->singleton(LivewireComponentsFinder::class, function () use ($defaultManifestPath) {
+        return new LivewireComponentsFinder(
+            new Filesystem,
+            config('livewire.manifest_path') ?: $defaultManifestPath,
+            ComponentParser::generatePathFromNamespace(
+                config('livewire.class_namespace', 'App\\Http\\Livewire')
+            )
+        );
+    });
+    LifecycleManager::registerHydrationMiddleware([
+
+        /* This is the core middleware stack of Livewire. It's important */
+        /* to understand that the request goes through each class by the */
+        /* order it is listed in this array, and is reversed on response */
+        /*                                                               */
+        /* ↓    Incoming Request                  Outgoing Response    ↑ */
+        /* ↓                                                           ↑ */
+        /* ↓    Secure Stuff                                           ↑ */
+        /* ↓ */ SecureHydrationWithChecksum::class, /* --------------- ↑ */
+        /* ↓ */ NormalizeServerMemoSansDataForJavaScript::class, /* -- ↑ */
+        /* ↓ */ HashDataPropertiesForDirtyDetection::class, /* ------- ↑ */
+        /* ↓                                                           ↑ */
+        /* ↓    Hydrate Stuff                                          ↑ */
+        /* ↓ */ HydratePublicProperties::class, /* ------------------- ↑ */
+        /* ↓ */ CallPropertyHydrationHooks::class, /* ---------------- ↑ */
+        /* ↓ */ CallHydrationHooks::class, /* ------------------------ ↑ */
+        /* ↓                                                           ↑ */
+        /* ↓    Update Stuff                                           ↑ */
+        /* ↓ */ PerformDataBindingUpdates::class, /* ----------------- ↑ */
+        /* ↓ */ PerformActionCalls::class, /* ------------------------ ↑ */
+        /* ↓ */ PerformEventEmissions::class, /* --------------------- ↑ */
+        /* ↓                                                           ↑ */
+        /* ↓    Output Stuff                                           ↑ */
+        /* ↓ */ RenderView::class, /* -------------------------------- ↑ */
+        /* ↓ */ NormalizeComponentPropertiesForJavaScript::class, /* - ↑ */
+
+    ]);
+
+    LifecycleManager::registerInitialDehydrationMiddleware([
+
+        /* Initial Response */
+        /* ↑ */ [SecureHydrationWithChecksum::class, 'dehydrate'],
+        /* ↑ */ [NormalizeServerMemoSansDataForJavaScript::class, 'dehydrate'],
+        /* ↑ */ [HydratePublicProperties::class, 'dehydrate'],
+        /* ↑ */ [CallPropertyHydrationHooks::class, 'dehydrate'],
+        /* ↑ */ [CallHydrationHooks::class, 'initialDehydrate'],
+        /* ↑ */ [RenderView::class, 'dehydrate'],
+        /* ↑ */ [NormalizeComponentPropertiesForJavaScript::class, 'dehydrate'],
+
+    ]);
+
+    LifecycleManager::registerInitialHydrationMiddleware([
+
+        [CallHydrationHooks::class, 'initialHydrate'],
+
+    ]);
+    return $livewire;
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -296,8 +415,7 @@ spl_autoload_register(function ($className) use ($app) {
 | Configure Restler to adapt to Laravel structure
 |--------------------------------------------------------------------------
 */
-
-Html::$viewPath = $app['path'] . '/views';
+Html::$viewPath = base_path('resources/views');
 Defaults::$cacheDirectory = $app['config']['cache.path'];
 Defaults::$productionMode = 'production' == getenv('APP_ENV') ?: 'development';
 
@@ -305,3 +423,83 @@ Html::$template = 'blade';
 Forms::$style = FormStyles::$bootstrap3;
 
 include BASE . '/routes/api.php';
+
+function request()
+{
+    global $currentRequest;
+    if (!$currentRequest) {
+        $currentRequest = ServerRequest::fromGlobals();
+    }
+    return $currentRequest;
+}
+
+function csrf_token()
+{
+    return '283472938jsdsjd984734h';
+}
+
+if (!function_exists('view')) {
+    /**
+     * Get the evaluated view contents for the given view.
+     *
+     * @param string|null $view
+     * @param \Illuminate\Contracts\Support\Arrayable|array $data
+     * @param array $mergeData
+     * @return \Illuminate\Contracts\View\View|\Illuminate\Contracts\View\Factory
+     */
+    function view($view = null, $data = [], $mergeData = [])
+    {
+        static $factory, $viewFinder, $engine = null;
+        if (!$factory) {
+            $resolver = new EngineResolver();
+            $filesystem = new Filesystem();
+            $compiler = new BladeCompiler($filesystem, Html::$cacheDirectory ?? Defaults::$cacheDirectory);
+            $engine = new CompilerEngine($compiler);
+            $resolver->register(
+                'blade',
+                function () use ($engine, $compiler) {
+                    if (class_exists(\Facade\Ignition\IgnitionServiceProvider::class)) {
+                        return new CompilerEngineForIgnition($compiler);
+                    }
+                    return new LivewireViewCompilerEngine($compiler);
+                    //return $engine;
+                }
+            );
+            $phpEngine = new PhpEngine($filesystem);
+            $resolver->register(
+                'php',
+                function () use ($phpEngine) {
+                    return $phpEngine;
+                }
+            );
+            $app = app();
+            $app->instance('blade.compiler', $compiler);
+            $app->instance('view.engine.resolver', $resolver);
+            $compiler->directive('this', [LivewireBladeDirectives::class, 'this']);
+            $compiler->directive('entangle', [LivewireBladeDirectives::class, 'entangle']);
+            $compiler->directive('livewire', [LivewireBladeDirectives::class, 'livewire']);
+            $compiler->directive('livewireStyles', [LivewireBladeDirectives::class, 'livewireStyles']);
+            $compiler->directive('livewireScripts', [LivewireBladeDirectives::class, 'livewireScripts']);
+            if (method_exists($compiler, 'precompiler')) {
+                $compiler->precompiler(function ($string) {
+                    return app(LivewireTagCompiler::class)->compile($string);
+                });
+            }
+            $viewFinder = new FileViewFinder($filesystem, [Html::$viewPath]);
+            $factory = new Factory($resolver, $viewFinder, new Dispatcher());
+            $factory->setContainer($app);
+            $factory->share('app', $app);
+            $app->instance('view', $factory);
+        }
+        if (0 === func_num_args()) {
+            return $factory;
+        }
+        return $factory->make($view, (array)$data, $mergeData);
+        $path = $viewFinder->find($view);
+        /*
+        $viewInstance = new View($factory, $engine, $view, $path, $data);
+        $factory->callCreator($viewInstance);
+        return $viewInstance->render();
+        */
+    }
+}

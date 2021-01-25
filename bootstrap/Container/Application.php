@@ -2,8 +2,12 @@
 
 namespace Bootstrap\Container;
 
-use Illuminate\Container\Container;
 use Closure;
+use Illuminate\Bus\BusServiceProvider;
+use Illuminate\Bus\Dispatcher;
+use Illuminate\Container\Container;
+use Illuminate\Encryption\EncryptionServiceProvider;
+use Illuminate\Foundation\Events\LocaleUpdated;
 
 class Application extends Container
 {
@@ -16,6 +20,18 @@ class Application extends Container
      * @var string
      */
     protected $basePath;
+    /**
+     * @var mixed
+     */
+    private $loadedConfigurations = [];
+    /**
+     * @var mixed
+     */
+    private $loadedProviders = [];
+    /**
+     * @var mixed
+     */
+    private $booted = false;
 
     /**
      * Create a new Lumen application instance.
@@ -28,12 +44,20 @@ class Application extends Container
     {
         $this->basePath = $basePath;
         $this->bootstrapContainer();
+        $this->registerEncrypterBindings();
         //$this->registerErrorHandling();
     }
 
-    public static function version()
+    /**
+     * Bootstrap the application container.
+     *
+     * @return void
+     */
+    protected function bootstrapContainer()
     {
-        return static::VERSION;
+        static::setInstance($this);
+        $this->instance('app', $this);
+        $this->instance('path', $this->path());
     }
 
     /**
@@ -44,6 +68,11 @@ class Application extends Container
     public function path()
     {
         return $this->basePath . DIRECTORY_SEPARATOR . 'app';
+    }
+
+    public static function version()
+    {
+        return static::VERSION;
     }
 
     /**
@@ -68,6 +97,16 @@ class Application extends Container
     }
 
     /**
+     * Determine if the application is running in the console.
+     *
+     * @return bool
+     */
+    public function runningInConsole()
+    {
+        return php_sapi_name() == 'cli';
+    }
+
+    /**
      * Get the database path for the application.
      *
      * @return string
@@ -87,29 +126,6 @@ class Application extends Container
     public function storagePath($path = null)
     {
         return storage_path($path);
-    }
-
-
-    /**
-     * Bootstrap the application container.
-     *
-     * @return void
-     */
-    protected function bootstrapContainer()
-    {
-        static::setInstance($this);
-        $this->instance('app', $this);
-        $this->instance('path', $this->path());
-    }
-
-    /**
-     * Determine if the application is running in the console.
-     *
-     * @return bool
-     */
-    public function runningInConsole()
-    {
-        return php_sapi_name() == 'cli';
     }
 
     /**
@@ -171,6 +187,23 @@ class Application extends Container
         return $this['env'];
     }
 
+    public function setLocale($locale)
+    {
+        $this['config']->set('app.locale', $locale);
+        $this['translator']->setLocale($locale);
+        $this['events']->dispatch(new LocaleUpdated($locale));
+    }
+    /**
+     * Get the current application locale.
+     *
+     * @return string
+     */
+    public function getLocale()
+    {
+        return $this['config']->get('app.locale');
+    }
+
+
     /**
      * Bind the installation paths to the application.
      *
@@ -210,5 +243,142 @@ class Application extends Container
     public function getNamespace()
     {
         return getAppNamespace();
+    }
+
+    public function runningUnitTests(): bool
+    {
+        return false;
+    }
+
+    public function resourcePath($path = '')
+    {
+        return resource_path($path);
+    }
+
+    public function bootstrapPath($path = '')
+    {
+        return base_path('bootstrap' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
+    }
+
+    /**
+     * Register container bindings for the application.
+     *
+     * @return void
+     */
+    protected function registerEncrypterBindings()
+    {
+        $this->singleton('encrypter', function () {
+            return $this->loadComponent('app', EncryptionServiceProvider::class, 'encrypter');
+        });
+    }
+
+
+    /**
+     * Configure and load the given component and provider.
+     *
+     * @param  string  $config
+     * @param  array|string  $providers
+     * @param  string|null  $return
+     * @return mixed
+     */
+    public function loadComponent($config, $providers, $return = null)
+    {
+        $this->configure($config);
+
+        foreach ((array) $providers as $provider) {
+            $this->register($provider);
+        }
+
+        return $this->make($return ?: $config);
+    }
+
+    /**
+     * Load a configuration file into the application.
+     *
+     * @param  string  $name
+     * @return void
+     */
+    public function configure($name)
+    {
+        if (isset($this->loadedConfigurations[$name])) {
+            return;
+        }
+
+        $this->loadedConfigurations[$name] = true;
+
+        $path = $this->getConfigurationPath($name);
+
+        if ($path) {
+            $this->make('config')->set($name, require $path);
+        }
+    }
+
+    /**
+     * Get the path to the given configuration file.
+     *
+     * If no name is provided, then we'll return the path to the config folder.
+     *
+     * @param  string|null  $name
+     * @return string
+     */
+    public function getConfigurationPath($name = null)
+    {
+        if (! $name) {
+            $appConfigDir = $this->basePath('config').'/';
+
+            if (file_exists($appConfigDir)) {
+                return $appConfigDir;
+            } elseif (file_exists($path = __DIR__.'/../config/')) {
+                return $path;
+            }
+        } else {
+            $appConfigPath = $this->basePath('config').'/'.$name.'.php';
+
+            if (file_exists($appConfigPath)) {
+                return $appConfigPath;
+            } elseif (file_exists($path = __DIR__.'/../config/'.$name.'.php')) {
+                return $path;
+            }
+        }
+    }
+
+    /**
+     * Register a service provider with the application.
+     *
+     * @param  \Illuminate\Support\ServiceProvider|string  $provider
+     * @return void
+     */
+    public function register($provider)
+    {
+        if (! $provider instanceof ServiceProvider) {
+            $provider = new $provider($this);
+        }
+
+        if (array_key_exists($providerName = get_class($provider), $this->loadedProviders)) {
+            return;
+        }
+
+        $this->loadedProviders[$providerName] = $provider;
+
+        if (method_exists($provider, 'register')) {
+            $provider->register();
+        }
+
+        if ($this->booted) {
+            $this->bootProvider($provider);
+        }
+    }
+
+    /**
+     * Boot the given service provider.
+     *
+     * @param  \Illuminate\Support\ServiceProvider  $provider
+     * @return mixed
+     */
+    protected function bootProvider(ServiceProvider $provider)
+    {
+        if (method_exists($provider, 'boot')) {
+            return $this->call([$provider, 'boot']);
+        }
     }
 }
